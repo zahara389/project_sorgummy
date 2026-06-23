@@ -5,6 +5,7 @@ import 'package:sorgummi_ai/admin/manage_articles_screen.dart';
 import 'package:sorgummi_ai/admin/sorgum_management_screen.dart';
 import 'package:sorgummi_ai/admin/gesture_management_screen.dart';
 import 'package:sorgummi_ai/presentation/screens/welcome_screen.dart';
+import 'package:sorgummi_ai/presentation/screens/main_navigation.dart';
 import 'package:sorgummi_ai/admin/widgets/activity_line_chart.dart';
 import 'package:sorgummi_ai/admin/widgets/category_bar_chart.dart';
 // ─────────────────────────────────────────────────────────────────────────────
@@ -152,9 +153,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Keluar Akun Admin',
+        title: const Text('Beralih ke Halaman Pengguna',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        content: const Text('Apakah Anda yakin ingin keluar dari panel admin?'),
+        content: const Text('Apakah Anda yakin ingin keluar dari panel admin dan beralih langsung ke halaman pengguna?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -162,11 +163,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: Colors.redAccent,
+              backgroundColor: AppColors.primaryGreen,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Ya, Keluar'),
+            child: const Text('Ya, Beralih'),
           ),
         ],
       ),
@@ -174,13 +175,14 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     if (confirm != true || !mounted) return;
 
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('is_logged_in', false);
-    await prefs.remove('user_role');
+    await prefs.setString('user_role', 'user');
+    await prefs.setBool('is_logged_in', true);
+    await prefs.setBool('isLoggedIn', true);
 
     if (!mounted) return;
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+      MaterialPageRoute(builder: (_) => const MainNavigation()),
       (route) => false,
     );
   }

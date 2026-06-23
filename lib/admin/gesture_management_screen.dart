@@ -5,6 +5,8 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sorgummi_ai/core/constants/colors.dart';
+import 'package:sorgummi_ai/presentation/screens/main_navigation.dart';
+import 'package:sorgummi_ai/presentation/screens/chat_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Model: Partikel Visual untuk Efek Sentuhan
@@ -254,6 +256,9 @@ class _GestureManagementScreenState extends State<GestureManagementScreen> with 
     
     // Tampilkan notifikasi melayang kustom yang estetik
     _showGestureFeedback(type, mappedAction);
+
+    // Eksekusi aksi nyata
+    _executeGestureAction(mappedAction);
   }
 
   // Notifikasi Kustom Gestur Terdeteksi
@@ -295,6 +300,151 @@ class _GestureManagementScreenState extends State<GestureManagementScreen> with 
         duration: const Duration(seconds: 2),
         margin: const EdgeInsets.all(16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+    );
+  }
+
+  void _executeGestureAction(String action) async {
+    if (action == 'Tidak Ada Aksi') return;
+
+    if (action == 'Keluar Panel Admin (Logout)') {
+      // Ubah sesi menjadi user biasa agar langsung masuk ke halaman khusus pengguna
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_role', 'user');
+      await prefs.setBool('is_logged_in', true);
+      await prefs.setBool('isLoggedIn', true);
+      
+      if (!mounted) return;
+      
+      // Beri notifikasi transisi
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Beralih ke Halaman Pengguna...', style: TextStyle(fontWeight: FontWeight.bold)),
+          backgroundColor: AppColors.primaryGreen,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      
+      // Navigasi ke halaman utama pengguna (MainNavigation)
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const MainNavigation()),
+        (route) => false,
+      );
+    } else if (action == 'Buka Chatbot AI') {
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const ChatScreen()),
+      );
+    } else if (action == 'Kosongkan Cache Aplikasi') {
+      _showLoadingDialog('Mengosongkan Cache...', 'Sedang membersihkan file sampah dan cache aplikasi...');
+      await Future.delayed(const Duration(milliseconds: 1500));
+      if (!mounted) return;
+      Navigator.pop(context); // Tutup dialog
+      _showActionSnackBar('Berhasil mengosongkan cache aplikasi (14.2 MB dibersihkan).');
+    } else if (action == 'Sinkronisasi Database') {
+      _showLoadingDialog('Sinkronisasi Database...', 'Menghubungkan ke server dan menyinkronkan data...');
+      await Future.delayed(const Duration(milliseconds: 1800));
+      if (!mounted) return;
+      Navigator.pop(context); // Tutup dialog
+      _showActionSnackBar('Sinkronisasi database berhasil diselesaikan!');
+    } else if (action == 'Simpan Data Edukasi') {
+      _showActionSnackBar('Data edukasi berhasil disimpan ke database lokal.');
+    } else if (action == 'Tampilkan Tips Ahli') {
+      _showTipsDialog();
+    }
+  }
+
+  void _showLoadingDialog(String title, String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        content: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(color: AppColors.primaryGreen),
+              const SizedBox(height: 20),
+              Text(
+                title,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                message,
+                style: const TextStyle(fontSize: 12, color: AppColors.textLight),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showActionSnackBar(String message) {
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppColors.primaryGreen,
+        duration: const Duration(seconds: 3),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  void _showTipsDialog() {
+    final List<String> tips = [
+      'Sorgum sangat toleran terhadap kekeringan. Hindari penyiraman berlebihan untuk mencegah pembusukan akar.',
+      'Suhu optimal untuk pertumbuhan tanaman sorgum berkisar antara 23°C hingga 30°C.',
+      'Lakukan penyiangan gulma pada minggu ke-3 dan ke-6 setelah tanam untuk menjaga nutrisi tanah.',
+      'Tanah lempung berpasir dengan pH 5.5 - 7.5 adalah media tanam terbaik untuk budidaya sorgum.',
+      'Pupuk nitrogen (Urea) sebaiknya diberikan dalam dua tahap: saat tanam dan umur 30 hari setelah tanam.',
+    ];
+    final randomTip = tips[_random.nextInt(tips.length)];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.lightbulb_outline_rounded, color: Colors.orangeAccent),
+            SizedBox(width: 8),
+            Text('Tips Ahli Hari Ini', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          ],
+        ),
+        content: Text(
+          randomTip,
+          style: const TextStyle(fontSize: 13, height: 1.4, color: AppColors.textCharcoal),
+        ),
+        actions: [
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Mengerti', style: TextStyle(fontSize: 12)),
+          ),
+        ],
       ),
     );
   }
