@@ -19,6 +19,7 @@ import 'about_screen.dart';
 // FIX PATH IMPORT: Sudah disesuaikan rill dengan nama project kelompokmu 'sorgummi_ai'
 import 'package:sorgummi_ai/admin/manage_articles_screen.dart';
 import 'package:sorgummi_ai/admin/sorgum_management_screen.dart';
+import 'package:sorgummi_ai/admin/gesture_management_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -377,6 +378,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           _MenuData(icon: Icons.history_rounded, title: 'Aktivitas Saya', destination: const ActivityLogScreen()),
                           _MenuData(icon: Icons.notifications_none, title: 'Notifikasi', destination: const NotificationSettingsScreen()),
                           _MenuData(icon: Icons.lock_outline, title: 'Keamanan & Password', destination: const SecurityScreen()),
+                          _MenuData(icon: Icons.gesture_rounded, title: 'Pengaturan Gestur & Pintasan', destination: const GestureManagementScreen()),
                         ],
                       ),
                       const SizedBox(height: 24),

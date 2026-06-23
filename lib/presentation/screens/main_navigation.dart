@@ -7,6 +7,8 @@ import 'pengelolaan_screen.dart';
 import 'edukasi_screen.dart';
 import 'profile_screen.dart';
 
+import '../../admin/widgets/global_gesture_assistant.dart';
+
 class MainNavigation extends StatefulWidget {
   const MainNavigation({Key? key}) : super(key: key);
 
@@ -28,10 +30,12 @@ class _MainNavigationState extends State<MainNavigation> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundWhite,
-      body: _screens[_currentIndex],
-      bottomNavigationBar: _buildCustomBottomNav(),
+    return GlobalGestureAssistant(
+      child: Scaffold(
+        backgroundColor: AppColors.backgroundWhite,
+        body: _screens[_currentIndex],
+        bottomNavigationBar: _buildCustomBottomNav(),
+      ),
     );
   }
 

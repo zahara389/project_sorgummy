@@ -4,6 +4,7 @@ import 'package:sorgummi_ai/core/constants/colors.dart';
 import 'package:sorgummi_ai/admin/manage_articles_screen.dart';
 import 'package:sorgummi_ai/admin/sorgum_management_screen.dart';
 import 'package:sorgummi_ai/admin/gesture_management_screen.dart';
+import 'package:sorgummi_ai/admin/widgets/global_gesture_assistant.dart';
 import 'package:sorgummi_ai/presentation/screens/welcome_screen.dart';
 import 'package:sorgummi_ai/presentation/screens/main_navigation.dart';
 import 'package:sorgummi_ai/admin/widgets/activity_line_chart.dart';
@@ -138,11 +139,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     }
   }
 
-  void _onMenuTap(int index) {
+  void _onMenuTap(int index) async {
     final dest = _resolveDestination(index);
     if (dest != null) {
       // Navigasi ke layar terpisah untuk item yang sudah ada
-      Navigator.push(context, MaterialPageRoute(builder: (_) => dest));
+      await Navigator.push(context, MaterialPageRoute(builder: (_) => dest));
+      if (mounted) setState(() {});
     } else {
       setState(() => _selectedIndex = index);
     }
@@ -195,12 +197,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       );
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final bool isWide = constraints.maxWidth >= _kBreakpoint;
+    return GlobalGestureAssistant(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final bool isWide = constraints.maxWidth >= _kBreakpoint;
 
-        return Scaffold(
-          backgroundColor: const Color(0xFFF4F6F9),
+          return Scaffold(
+            backgroundColor: const Color(0xFFF4F6F9),
           // ── MOBILE: Drawer sebagai sidebar ──────────────────────────────
           drawer: isWide
               ? null
@@ -274,8 +277,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 )
               // Mobile: hanya konten
               : _MainContent(selectedIndex: _selectedIndex),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

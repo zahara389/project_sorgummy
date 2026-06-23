@@ -123,6 +123,11 @@ class _GestureManagementScreenState extends State<GestureManagementScreen> with 
   // Loading state
   bool _isLoading = true;
 
+  // Variabel deteksi geser (Swipe)
+  Offset? _dragStartPos;
+  DateTime? _dragStartTime;
+  Offset? _dragLastPos;
+
   @override
   void initState() {
     super.initState();
@@ -683,23 +688,45 @@ class _GestureManagementScreenState extends State<GestureManagementScreen> with 
                 onScaleStart: (details) {
                   setState(() {
                     _currentScale = 1.0;
+                    _dragStartPos = details.localFocalPoint;
+                    _dragLastPos = details.localFocalPoint;
+                    _dragStartTime = DateTime.now();
                   });
                 },
                 onScaleUpdate: (details) {
                   setState(() {
                     _currentScale = details.scale;
+                    _dragLastPos = details.localFocalPoint;
                     _currentVelocity = 'Vx: ${details.focalPointDelta.dx.toStringAsFixed(1)}, Vy: ${details.focalPointDelta.dy.toStringAsFixed(1)}';
                   });
                 },
                 onScaleEnd: (details) {
-                  if ((_currentScale - 1.0).abs() > 0.2) {
+                  if ((_currentScale - 1.0).abs() > 0.25) {
                     _logGesture(
                       'Scale/Pinch',
                       'Skala Cubit: ${_currentScale.toStringAsFixed(2)}, Kecepatan: ${details.velocity.pixelsPerSecond}',
                       'scale_pinch',
                     );
                   } else {
-                    // Deteksi Swipe berdasarkan velocity
+                    // Deteksi Swipe berdasarkan perpindahan (displacement) yang andal di web
+                    if (_dragStartPos != null && _dragLastPos != null && _dragStartTime != null) {
+                      final duration = DateTime.now().difference(_dragStartTime!);
+                      final dx = _dragLastPos!.dx - _dragStartPos!.dx;
+                      final dy = _dragLastPos!.dy - _dragStartPos!.dy;
+
+                      if (duration.inMilliseconds < 500) {
+                        if (dx.abs() > 60 && dx.abs() > dy.abs()) {
+                          if (dx < 0) {
+                            _logGesture('Swipe', 'Geser ke kiri (Swipe Left)', 'swipe_left');
+                          } else {
+                            _logGesture('Swipe', 'Geser ke kanan (Swipe Right)', 'swipe_right');
+                          }
+                          return;
+                        }
+                      }
+                    }
+
+                    // Fallback ke velocity jika drag logic terlewat
                     final velocity = details.velocity.pixelsPerSecond;
                     if (velocity.dx.abs() > 300) {
                       if (velocity.dx < 0) {
@@ -825,6 +852,70 @@ class _GestureManagementScreenState extends State<GestureManagementScreen> with 
             style: TextStyle(fontSize: 12, color: AppColors.textLight),
           ),
           const SizedBox(height: 16),
+
+          // Toggle Asisten Gestur Global
+          FutureBuilder<SharedPreferences>(
+            future: SharedPreferences.getInstance(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) return const SizedBox.shrink();
+              final prefs = snapshot.data!;
+              bool isAssistantEnabled = prefs.getBool('enable_global_gesture_assistant') ?? true;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 20),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryGreen.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.primaryGreen.withOpacity(0.2)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.gesture_rounded, color: AppColors.primaryGreen, size: 18),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'Asisten Gestur Global (Floating Bubble)',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textCharcoal),
+                          ),
+                          Text(
+                            'Tampilkan tombol melayang di sudut layar untuk mensimulasikan & menguji gestur di seluruh halaman.',
+                            style: TextStyle(fontSize: 10, color: AppColors.textLight),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: isAssistantEnabled,
+                      activeColor: AppColors.primaryGreen,
+                      onChanged: (val) async {
+                        await prefs.setBool('enable_global_gesture_assistant', val);
+                        setState(() {});
+                        ScaffoldMessenger.of(context).clearSnackBars();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(val ? 'Asisten Gestur diaktifkan!' : 'Asisten Gestur dinonaktifkan.'),
+                            behavior: SnackBarBehavior.floating,
+                            backgroundColor: AppColors.primaryGreen,
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              );
+            }
+          ),
 
           // Dropdown 1: Double Tap
           _buildMappingRow('Ketuk Ganda (Double Tap)', 'double_tap', Icons.touch_app_rounded),
