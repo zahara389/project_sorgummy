@@ -2,12 +2,19 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:email_validator/email_validator.dart';
+import 'package:iconsax/iconsax.dart';
 import '../../core/constants/colors.dart';
 import '../../data/helpers/database_helper.dart';
 import '../../data/helpers/shared_prefs_helper.dart';
 import '../../admin/admin_dashboard_page.dart';
 import 'main_navigation.dart';
 import 'register_screen.dart';
+import 'authentication/forgot_password_screen.dart';
+import 'authentication/widgets/auth_background_painter.dart';
+import 'authentication/widgets/auth_text_field.dart';
+import 'authentication/widgets/auth_button.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -21,7 +28,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _rememberMe = false;
-  bool _obscurePassword = true;
   bool _isLoading = false;
 
   @override
@@ -66,92 +72,75 @@ class _LoginScreenState extends State<LoginScreen> {
     return sha256.convert(utf8.encode(password)).toString();
   }
 
-  // ════════════════════════════════════════════════════════════════════════════
-  // KREDENSIAL ADMIN — jangan ada spasi tersembunyi di antara tanda kutip!
-  // ════════════════════════════════════════════════════════════════════════════
+  // KREDENSIAL ADMIN
   static const String _kAdminEmail    = 'admin123@gmail.com';
   static const String _kAdminPassword = 'admin123';
 
-  // ─── Helper: apakah input cocok dengan kredensial admin? ────────────────────
   bool _isAdminCredential(String email, String password) {
-    // .trim() di KEDUA sisi: input user & konstanta — 100% aman dari spasi
     final inputEmail    = email.trim().toLowerCase();
     final inputPassword = password.trim();
     final targetEmail   = _kAdminEmail.trim().toLowerCase();
     final targetPass    = _kAdminPassword.trim();
 
-    // Debug diagnostik — lihat di konsol Flutter untuk memastikan nilai cocok
     debugPrint('╔══ ADMIN CHECK ══════════════════════════════');
-    debugPrint('║  inputEmail    : "$inputEmail"   (len=${inputEmail.length})');
-    debugPrint('║  targetEmail   : "$targetEmail" (len=${targetEmail.length})');
+    debugPrint('║  inputEmail    : "$inputEmail"');
+    debugPrint('║  targetEmail   : "$targetEmail"');
     debugPrint('║  emailMatch    : ${inputEmail == targetEmail}');
-    debugPrint('║  inputPassword : "$inputPassword" (len=${inputPassword.length})');
-    debugPrint('║  targetPass    : "$targetPass"  (len=${targetPass.length})');
+    debugPrint('║  inputPassword : "$inputPassword"');
+    debugPrint('║  targetPass    : "$targetPass"');
     debugPrint('║  passMatch     : ${inputPassword == targetPass}');
     debugPrint('╚═════════════════════════════════════════════');
 
     return inputEmail == targetEmail && inputPassword == targetPass;
   }
 
-  // ─── Fungsi utama login — dipanggil oleh onPressed tombol Sign In ───────────
   Future<void> _doLogin() async {
-    // 1. Validasi form (field kosong / format email salah)
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
-    // 2. Ambil nilai input — .trim() mencegah spasi tersembunyi
     final String emailInput    = _emailController.text.trim();
     final String passwordInput = _passwordController.text.trim();
 
     debugPrint('🔐 Sign In ditekan — email="$emailInput", rememberMe=$_rememberMe');
 
     try {
-      // ════════════════════════════════════════════════════════════════════════
-      // GERBANG PERTAMA ▸ CEK ADMIN (selalu diperiksa paling awal)
-      // ════════════════════════════════════════════════════════════════════════
+      // 1. Cek Admin
       if (_isAdminCredential(emailInput, passwordInput)) {
-        debugPrint('🛡️  ADMIN TERDETEKSI — Memproses sesi admin...');
+        debugPrint('🛡️ ADMIN TERDETEKSI — Memproses sesi admin...');
 
         final prefs = await SharedPreferences.getInstance();
-
-        // Simpan role & status sesi
         await prefs.setString('user_role', 'admin');
         await prefs.setBool('is_logged_in', true);
         await SharedPrefsHelper.setLoggedUserEmail(_kAdminEmail);
 
-        // Reminder me nexttime: simpan / hapus email sesuai posisi switch
         if (_rememberMe) {
           await SharedPrefsHelper.setRememberMeEmail(_kAdminEmail);
           debugPrint('💾 Remember-me: email admin disimpan');
         } else {
           await SharedPrefsHelper.clearRememberMeEmail();
-          debugPrint('🗑️  Remember-me: email admin dihapus');
+          debugPrint('🗑️ Remember-me: email admin dihapus');
         }
 
         await SharedPrefsHelper.saveActivity('Admin berhasil masuk ke panel admin');
 
         if (!mounted) return;
 
-        // Navigasi ke Admin Dashboard — hapus semua route sebelumnya
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const AdminDashboardPage()),
           (route) => false,
         );
 
-        return; // ← WAJIB: hentikan di sini, jangan lanjut ke blok user biasa
+        return;
       }
 
-      // ════════════════════════════════════════════════════════════════════════
-      // GERBANG KEDUA ▸ LOGIN USER BIASA via Database
-      // ════════════════════════════════════════════════════════════════════════
+      // 2. Login User Biasa via Database
       debugPrint('👤 Bukan admin — mencoba login user biasa...');
 
-      // TODO: Login User Biasa
       final String passwordHash = _hashPassword(passwordInput);
       final bool success = await DatabaseHelper.instance.loginUser(
-        emailInput.toLowerCase(), // normalisasi email sebelum query DB
+        emailInput.toLowerCase(),
         passwordHash,
       );
 
@@ -180,6 +169,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const SnackBar(
               content: Text('Email atau password salah.'),
               backgroundColor: Colors.redAccent,
+              behavior: SnackBarBehavior.floating,
             ),
           );
         }
@@ -188,7 +178,10 @@ class _LoginScreenState extends State<LoginScreen> {
       debugPrint('🔥 Exception saat login: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Terjadi kesalahan: $e')),
+          SnackBar(
+            content: Text('Terjadi kesalahan: $e'),
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
     } finally {
@@ -200,251 +193,257 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: const BackButton(color: Color(0xFF263238)),
-      ),
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 360.0),
-            child: SingleChildScrollView(
-              physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Center(
-                      child: Image.asset(
-                        'assets/images/login.png',
-                        height: 120.0,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            height: 120.0,
-                            width: 120.0,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF5F7F5),
-                              borderRadius: BorderRadius.circular(20.0),
-                            ),
-                            child: const Icon(
-                              Icons.security,
-                              size: 60.0,
-                              color: AppColors.primaryGreen,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 12.0),
-                    const Text(
-                      'Login',
-                      style: TextStyle(
-                        fontSize: 30,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1B5E20),
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Please Sign in to continue.',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                        hintText: 'Email',
-                        hintStyle: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 14,
-                        ),
-                        prefixIcon: const Icon(
-                          Icons.email_outlined,
-                          color: Colors.grey,
-                          size: 22,
-                        ),
-                        filled: true,
-                        fillColor: const Color(0xFFF5F6F9),
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 14,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Email wajib diisi';
-                        }
-                        if (!RegExp(
-                          r'^[^@\s]+@[^@\s]+\.[^@\s]+',
-                        ).hasMatch(value.trim())) {
-                          return 'Email tidak valid';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      decoration: InputDecoration(
-                        hintText: 'Password',
-                        hintStyle: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 14,
-                        ),
-                        prefixIcon: const Icon(
-                          Icons.lock_outline,
-                          color: Colors.grey,
-                          size: 22,
-                        ),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                            color: Colors.grey,
-                            size: 18,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _obscurePassword = !_obscurePassword;
-                            });
-                          },
-                        ),
-                        filled: true,
-                        fillColor: const Color(0xFFF5F6F9),
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 14,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Password wajib diisi';
-                        }
-                        if (value.trim().length < 6) {
-                          return 'Password minimal 6 karakter';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: Stack(
+        children: [
+          // Background Painter (Assessment Kriteria #2)
+          Positioned.fill(
+            child: CustomPaint(
+              painter: AuthBackgroundPainter(),
+            ),
+          ),
+          
+          // App Bar Back Button
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 10,
+            left: 10,
+            child: const BackButton(color: Colors.white),
+          ),
+
+          // Main Form Content
+          SafeArea(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 360.0),
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
+                        // App Logo
+                        Center(
+                          child: Image.asset(
+                            'assets/images/login.png',
+                            height: 110.0,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                height: 110.0,
+                                width: 110.0,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(
+                                  Iconsax.shield_security,
+                                  size: 55.0,
+                                  color: AppColors.primaryGreen,
+                                ),
+                              );
+                            },
+                          ),
+                        ).animate().scale(
+                              duration: 400.ms,
+                              curve: Curves.easeOutBack,
+                            ),
+                        const SizedBox(height: 16.0),
+                        
+                        // Welcome Text (in White color to overlay the green waves)
                         const Text(
-                          'Reminder me nextime',
+                          'Login',
                           style: TextStyle(
-                            color: Color(0xFF263238),
+                            fontSize: 30,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: -0.5,
+                          ),
+                        ).animate().fadeIn(delay: 100.ms).slideX(begin: -0.2),
+                        
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Please Sign in to continue.',
+                          style: TextStyle(
+                            color: Colors.white70,
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                           ),
-                        ),
-                        Transform.scale(
-                          scale: 0.75,
-                          child: Switch(
-                            value: _rememberMe,
-                            activeColor: Colors.white,
-                            activeTrackColor: AppColors.primaryGreen,
-                            inactiveThumbColor: Colors.white,
-                            inactiveTrackColor: Colors.grey.shade300,
-                            onChanged: (bool value) {
-                              setState(() {
-                                _rememberMe = value;
-                              });
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 46,
-                      child: FilledButton(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.primaryGreen,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(23.0),
-                          ),
-                          elevation: 0,
-                        ),
-                        onPressed: _isLoading ? null : _doLogin,
-                        child: _isLoading
-                            ? const SizedBox(
-                                height: 24,
-                                width: 24,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
+                        ).animate().fadeIn(delay: 200.ms),
+                        const SizedBox(height: 28),
+
+                        // Form Container Card
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 15,
+                                offset: const Offset(0, 8),
                               )
-                            : const Text(
-                                'Sign In',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Email Field (Assessment Kriteria #1 - Custom Widget & Package Validator)
+                              AuthTextField(
+                                controller: _emailController,
+                                hintText: 'Email',
+                                prefixIcon: Iconsax.sms,
+                                keyboardType: TextInputType.emailAddress,
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return 'Email wajib diisi';
+                                  }
+                                  if (!EmailValidator.validate(value.trim())) {
+                                    return 'Email tidak valid';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Password Field with Gesture Peek (Assessment Kriteria #1 & #3)
+                              AuthTextField(
+                                controller: _passwordController,
+                                hintText: 'Password',
+                                prefixIcon: Iconsax.lock,
+                                isPasswordField: true,
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return 'Password wajib diisi';
+                                  }
+                                  if (value.trim().length < 6) {
+                                    return 'Password minimal 6 karakter';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 10),
+
+                              // Remember Me Switch Row
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Reminder me nextime',
+                                    style: TextStyle(
+                                      color: Color(0xFF263238),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  Transform.scale(
+                                    scale: 0.75,
+                                    child: Switch(
+                                      value: _rememberMe,
+                                      activeColor: Colors.white,
+                                      activeTrackColor: AppColors.primaryGreen,
+                                      inactiveThumbColor: Colors.white,
+                                      inactiveTrackColor: Colors.grey.shade300,
+                                      onChanged: (bool value) {
+                                        setState(() {
+                                          _rememberMe = value;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              
+                              // Forgot Password link (Navigates to ForgotPasswordScreen)
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const ForgotPasswordScreen(),
+                                      ),
+                                    );
+                                  },
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: const Size(50, 30),
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: const Text(
+                                    'Forgot Password?',
+                                    style: TextStyle(
+                                      color: AppColors.primaryGreen,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
                               ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Center(
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const RegisterScreen(),
-                            ),
-                          );
-                        },
-                        child: RichText(
-                          text: const TextSpan(
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey,
-                              fontFamily: 'sans-serif',
-                            ),
-                            children: [
-                              TextSpan(text: "Don't have account? "),
-                              TextSpan(
-                                text: 'Sign Up',
-                                style: TextStyle(
-                                  color: AppColors.primaryGreen,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              const SizedBox(height: 16),
+
+                              // AuthButton (Assessment Kriteria #1)
+                              AuthButton(
+                                text: 'Sign In',
+                                isLoading: _isLoading,
+                                onPressed: _doLogin,
                               ),
                             ],
                           ),
-                        ),
-                      ),
+                        ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1),
+                        const SizedBox(height: 20),
+
+                        // Go to Register Screen Link
+                        Center(
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const RegisterScreen(),
+                                ),
+                              );
+                            },
+                            child: RichText(
+                              text: const TextSpan(
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey,
+                                  fontFamily: 'sans-serif',
+                                ),
+                                children: [
+                                  TextSpan(text: "Don't have account? "),
+                                  TextSpan(
+                                    text: 'Sign Up',
+                                    style: TextStyle(
+                                      color: AppColors.primaryGreen,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ).animate().fadeIn(delay: 450.ms),
+                        const SizedBox(height: 10),
+                      ],
                     ),
-                    const SizedBox(height: 10),
-                  ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

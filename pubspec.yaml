@@ -20,6 +20,15 @@ dependencies:
   crypto: ^3.0.3      # <--- Library untuk enkripsi password Shara (WAJIB)
   provider: ^6.0.5
   fl_chart: ^1.2.0
+  flutter_animate: ^4.5.0
+  email_validator: ^2.1.1
+  iconsax: ^0.0.8
+  # Chat AI Assessment 3 libraries
+  flutter_tts: ^4.2.0
+  speech_to_text: ^7.0.0
+  lottie: ^3.1.2
+  flutter_slidable: ^3.1.1
+  share_plus: ^10.0.0
 
 dev_dependencies:
   flutter_test:
@@ -39,4 +48,5 @@ flutter:
     - assets/images/pemupukan.png
     - assets/images/daun_kuning.png
     - assets/images/persiapan_lahan.png
+    - assets/lottie/
     

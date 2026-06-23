@@ -130,29 +130,33 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.cardLightGrey, width: 1),
       ),
-      child: SwitchListTile(
-        title: Text(
-          title,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textCharcoal),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4.0),
-          child: Text(
-            subtitle,
-            style: const TextStyle(fontSize: 12, color: AppColors.textLight),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: SwitchListTile(
+          title: Text(
+            title,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textCharcoal),
           ),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 4.0),
+            child: Text(
+              subtitle,
+              style: const TextStyle(fontSize: 12, color: AppColors.textLight),
+            ),
+          ),
+          value: value,
+          onChanged: onChanged,
+          activeColor: Colors.white,
+          activeTrackColor: AppColors.primaryGreen,
+          inactiveThumbColor: Colors.grey.shade400,
+          inactiveTrackColor: AppColors.cardLightGrey,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         ),
-        value: value,
-        onChanged: onChanged,
-        activeColor: Colors.white,
-        activeTrackColor: AppColors.primaryGreen,
-        inactiveThumbColor: Colors.grey.shade400,
-        inactiveTrackColor: AppColors.cardLightGrey,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       ),
     );
   }

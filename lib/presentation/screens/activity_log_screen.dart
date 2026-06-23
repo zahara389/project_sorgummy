@@ -144,32 +144,36 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
                         decoration: BoxDecoration(
-                          color: Colors.white,
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 10, offset: const Offset(0, 4)),
                           ],
                           border: Border.all(color: AppColors.cardLightGrey.withOpacity(0.5)),
                         ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                          leading: Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryGreen.withOpacity(0.08), 
-                              shape: BoxShape.circle,
+                        child: Material(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          clipBehavior: Clip.antiAlias,
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                            leading: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryGreen.withOpacity(0.08), 
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.bolt_rounded, color: AppColors.primaryGreen, size: 20),
                             ),
-                            child: const Icon(Icons.bolt_rounded, color: AppColors.primaryGreen, size: 20),
-                          ),
-                          title: Text(
-                            log['action']!, 
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textCharcoal),
-                          ),
-                          subtitle: Padding(
-                            padding: const EdgeInsets.only(top: 6.0),
-                            child: Text(
-                              log['time']!, 
-                              style: TextStyle(fontSize: 11, color: AppColors.textLight.withOpacity(0.6)),
+                            title: Text(
+                              log['action']!, 
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textCharcoal),
+                            ),
+                            subtitle: Padding(
+                              padding: const EdgeInsets.only(top: 6.0),
+                              child: Text(
+                                log['time']!, 
+                                style: TextStyle(fontSize: 11, color: AppColors.textLight.withOpacity(0.6)),
+                              ),
                             ),
                           ),
                         ),
