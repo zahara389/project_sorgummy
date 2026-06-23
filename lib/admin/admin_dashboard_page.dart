@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sorgummi_ai/core/constants/colors.dart';
 import 'package:sorgummi_ai/admin/manage_articles_screen.dart';
 import 'package:sorgummi_ai/admin/sorgum_management_screen.dart';
+import 'package:sorgummi_ai/admin/gesture_management_screen.dart';
 import 'package:sorgummi_ai/presentation/screens/welcome_screen.dart';
 import 'package:sorgummi_ai/admin/widgets/activity_line_chart.dart';
 import 'package:sorgummi_ai/admin/widgets/category_bar_chart.dart';
@@ -27,6 +28,7 @@ const List<_SidebarItem> _kMenuItems = [
   _SidebarItem(Icons.menu_book_rounded,         'Edukasi & Solusi'),
   _SidebarItem(Icons.agriculture_rounded,       'Pengelolaan'),
   _SidebarItem(Icons.smart_toy_rounded,         'AI Chatbot Monitoring'),
+  _SidebarItem(Icons.gesture_rounded,           'Manajemen Gestur'),
   _SidebarItem(Icons.bar_chart_rounded,         'Statistik & Analitik'),
   _SidebarItem(Icons.settings_rounded,          'Settings'),
 ];
@@ -130,6 +132,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     switch (index) {
       case 2: return const ManageArticlesScreen();     // Edukasi & Solusi
       case 3: return const SorgumManagementScreen();   // Pengelolaan
+      case 5: return const GestureManagementScreen();  // Manajemen Gestur
       default: return null;
     }
   }
